@@ -1,0 +1,26 @@
+{
+    "mesh": "assets/mesh.obj",
+    "textures": {
+        "albedo":     "assets/albedo.png",
+        "normal":     "assets/normal.png",
+        "metalRough": "assets/metalRough.png",
+        "ao":         "assets/ao.png"
+    },
+    "camera": {
+        "position": [0.0, 1.0, 3.0],
+        "target":   [0.0, 0.0, 0.0],
+        "fov":      60.0
+    },
+    "lights": [
+        {
+            "position": [2.0, 3.0, 2.0],
+            "color":    [1.0, 1.0, 1.0],
+            "intensity": 10.0
+        },
+        {
+            "position": [-2.0, 2.0, -1.0],
+            "color":    [0.8, 0.9, 1.0],
+            "intensity": 5.0
+        }
+    ]
+}
