@@ -11,7 +11,7 @@ layout(set = 0, binding = 0) uniform SceneUBO {
     mat4 proj;
     vec4 camPos;
     vec4 lightPos[MAX_LIGHTS];
-    vec4 lightColor[MAX_LIGHTS];  // w = intensity
+    vec4 lightColor[MAX_LIGHTS];
     int  numLights;
 } ubo;
 
@@ -22,9 +22,6 @@ layout(set = 0, binding = 4) uniform sampler2D texAO;
 
 layout(location = 0) out vec4 outColor;
 
-// ── PBR Hilfsfunktionen ───────────────────────────────────────────────────────
-
-// Normal Distribution Function — GGX/Trowbridge-Reitz
 float D_GGX(float NdotH, float roughness) {
     float a  = roughness * roughness;
     float a2 = a * a;
@@ -32,77 +29,61 @@ float D_GGX(float NdotH, float roughness) {
     return a2 / (PI * d * d);
 }
 
-// Geometry — Schlick-GGX
 float G_SchlickGGX(float NdotV, float roughness) {
     float r = roughness + 1.0;
     float k = (r * r) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
-// Smith's method
 float G_Smith(float NdotV, float NdotL, float roughness) {
     return G_SchlickGGX(NdotV, roughness) * G_SchlickGGX(NdotL, roughness);
 }
 
-// Fresnel — Schlick Approximation
 vec3 F_Schlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 void main() {
-    // Texturen samplen
-    vec3  albedo    = pow(texture(texAlbedo, inUV).rgb, vec3(2.2)); // sRGB → linear
-    vec2  mr        = texture(texMetalRough, inUV).bg;              // b=metallic, g=roughness
+    vec3  albedo    = pow(texture(texAlbedo, inUV).rgb, vec3(2.2));
+    vec2  mr        = texture(texMetalRough, inUV).bg;
     float metallic  = mr.x;
     float roughness = clamp(mr.y, 0.04, 1.0);
     float ao        = texture(texAO, inUV).r;
 
-    // Normal aus Normal Map (tangent space → world space)
     vec3 N = texture(texNormal, inUV).rgb * 2.0 - 1.0;
     N = normalize(inTBN * N);
 
     vec3 V  = normalize(ubo.camPos.xyz - inWorldPos);
-
-    // F0: Dielectric = 0.04, Metallic = albedo
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
 
     for (int i = 0; i < ubo.numLights; ++i) {
-        vec3  L         = normalize(ubo.lightPos[i].xyz - inWorldPos);
-        vec3  H         = normalize(V + L);
-        float dist      = length(ubo.lightPos[i].xyz - inWorldPos);
-        float atten     = 1.0 / (dist * dist);
-        vec3  radiance  = ubo.lightColor[i].rgb * ubo.lightColor[i].w * atten;
+        vec3  L        = normalize(ubo.lightPos[i].xyz - inWorldPos);
+        vec3  H        = normalize(V + L);
+        float dist     = length(ubo.lightPos[i].xyz - inWorldPos);
+        float atten    = 1.0 / (dist * dist);
+        vec3  radiance = ubo.lightColor[i].rgb * ubo.lightColor[i].w * atten;
 
         float NdotL = max(dot(N, L), 0.0);
         float NdotV = max(dot(N, V), 0.0);
         float NdotH = max(dot(N, H), 0.0);
         float HdotV = max(dot(H, V), 0.0);
 
-        // Cook-Torrance BRDF
         float D = D_GGX(NdotH, roughness);
         float G = G_Smith(NdotV, NdotL, roughness);
         vec3  F = F_Schlick(HdotV, F0);
 
+        vec3 kD       = (1.0 - F) * (1.0 - metallic);
+        vec3 diffuse  = kD * albedo / PI;
         vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
-
-        // Diffuse: kD = 0 bei Metallen
-        vec3 kD = (1.0 - F) * (1.0 - metallic);
-        vec3 diffuse = kD * albedo / PI;
 
         Lo += (diffuse + specular) * radiance * NdotL;
     }
 
-    // Ambient (einfaches IBL-Approximation via konstanter Umgebungsfarbe)
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color   = ambient + Lo;
-
-    // Tone mapping: Reinhard
     color = color / (color + vec3(1.0));
-
-    // Gamma Korrektur: linear → sRGB
     color = pow(color, vec3(1.0 / 2.2));
 
     outColor = vec4(color, 1.0);

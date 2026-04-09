@@ -27,11 +27,10 @@ void main() {
     outWorldPos   = worldPos.xyz;
     outUV         = inUV;
 
-    // TBN-Matrix für Normal Mapping
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vec3 N = normalize(normalMatrix * inNormal);
     vec3 T = normalize(normalMatrix * inTangent);
-    T = normalize(T - dot(T, N) * N);   // Gram-Schmidt
+    T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
     outTBN = mat3(T, B, N);
 

@@ -52,10 +52,10 @@ public:
 
 private:
     void createUBOs(VkContext& ctx);
-    void createDescriptors(VkContext& ctx);
+    void createDescriptorLayout(VkContext& ctx);   // ← neu: nur Layout+Pool
+    void writeDescriptorSets(VkContext& ctx);       // ← neu: nach loadScene
     void createPipeline(VkContext& ctx, Swapchain& swapchain, RenderPass& renderPass);
     void updateUBO(uint32_t frameIndex, VkExtent2D extent);
-
     // Pipeline
     Pipeline            m_pipeline;
     VkDescriptorSetLayout m_descLayout = VK_NULL_HANDLE;
