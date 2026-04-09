@@ -1,3 +1,0 @@
-/home/jan/vulkan-engine/build/CMakeFiles/VulkanEngine.dir
-/home/jan/vulkan-engine/build/CMakeFiles/edit_cache.dir
-/home/jan/vulkan-engine/build/CMakeFiles/rebuild_cache.dir
